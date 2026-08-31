@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Patinete",
+    "slug": "patinete-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0B0F10",
+    "android": {
+      "package": "com.paulo.patinete",
+      "permissions": [
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
+    },
+    "ios": {
+      "bundleIdentifier": "com.paulo.patinete",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "Conectar ao controlador do patinete",
+        "NSFaceIDUsageDescription": "Desbloquear a área técnica (Oficina)"
+      }
+    },
+    "plugins": [
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": false
+        }
+      ],
+      "expo-asset",
+      "expo-font",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Desbloquear a área técnica (Oficina)"
+        }
+      ],
+      "./plugins/withFmtXcode16Fix"
+    ]
+  }
+}
