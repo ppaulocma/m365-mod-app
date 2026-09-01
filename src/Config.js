@@ -32,7 +32,7 @@ export const P = {
   // --- malha de corrente de fase (INA240) ---
   CUR_P: 45, CUR_I: 46, CUR_TF: 47, PH_SHUNT: 48, PH_GAIN: 49,
   // --- medidos pela calibração / timing de comutação ---
-  SENS_DIR: 50, COMM_LEAD: 51, UD_MAX: 52, CUR_DB: 53,
+  SENS_DIR: 50, COMM_LEAD: 51, UD_MAX: 52, CUR_DB: 53, MEAS_AGE: 54,
 };
 
 // Estado LIGADO de uma feature, considerando a edição ao vivo (>= 0.5 = ligada;
@@ -52,11 +52,11 @@ export const fwOn = (params) => Math.abs(params?.[P.FW_MAX_A]?.val || 0) >= 0.05
 const GROUPS = [
   { title: 'Limites', items: [
     { id: P.MAX_KMH, l: 'Velocidade máxima',  u: 'km/h', d: 0,
-      h: 'Teto geral. O modo de pilotagem e o slider do painel reduzem por cima — se a velocidade parar antes disto, o culpado é um dos dois.' },
+      h: 'Teto geral de velocidade. O modo de pilotagem e o slider do painel reduzem por cima deste valor.' },
     { id: P.ILIM_A,  l: 'Corrente da bateria', u: 'A',    d: 0, h: 'Limite no barramento (INA226).' },
     { id: P.IQ_MAX,  l: 'Corrente de fase',    u: 'A',    d: 0, h: 'O que o punho cheio pede. É o torque máximo.' },
     { id: P.VLIM,    l: 'Tensão máxima',       u: 'V',    d: 1,
-      h: 'DEIXE NO MÁXIMO (42). O firmware já corta sozinho no teto de amostragem — baixar aqui só rouba velocidade de topo, em silêncio.' },
+      h: 'Tensão de barramento que as malhas usam como teto. O normal é deixar na tensão da bateria cheia; baixar reduz a velocidade máxima.' },
   ]},
   { title: 'Modos de pilotagem', items: [
     { id: P.ECO_VMAX, l: 'ECO · velocidade',    u: 'km/h', d: 0 },
@@ -82,13 +82,17 @@ const GROUPS = [
     { id: P.CUR_TF,   l: 'Filtro de Iq/Id',    u: 's',  d: 4,
       h: 'Só o filtro do referencial dq. Alto demais atrasa a malha; baixo demais deixa ruído entrar. 0.002–0.005.' },
     { id: P.CUR_DB,   l: 'Zona morta do integrador', u: 'A', d: 2,
-      h: 'Tem de COBRIR o ruído de Id/Iq medidos (o diagnóstico imprime o veredito e a sugestão). Pequena demais, o integrador persegue ruído e vira corrente real — no eixo d isso aparece como Id subindo sozinho com picos.' },
+      h: 'Erro menor que isto não entra no integrador das malhas de corrente. Tem de cobrir o ruído medido de Id/Iq — o diagnóstico mede e sugere o número. Pequena demais, o integrador persegue ruído e o converte em corrente real.' },
     { id: P.UD_MAX,   l: 'Autoridade do eixo d', u: '× teto', d: 2,
-      h: 'Quanto da tensão a malha de d pode usar para zerar o Id. 0 DESLIGA o eixo d — é o teste que separa "o d está bombeando corrente" de "a comutação está errada": se em 0 a velocidade voltar e a corrente cair, o problema é a malha de d.' },
+      h: 'Fração da tensão disponível que a malha de d pode gastar para zerar o Id. 0 desliga o eixo d (Ud = 0, comutação pura).' },
+    { id: P.COMM_LEAD, l: 'Avanço de comutação', u: 'µs', d: 0,
+      h: 'Avanço aplicado ao ângulo do sensor para compensar o atraso até a tensão chegar nos FETs. Curto demais, o vetor aplicado inclina ω·τ e o erro cresce com a velocidade — liso embaixo, áspero em cima. A varredura de diagnóstico mede este número: ela imprime o desalinhamento de roda livre já convertido em µs.' },
+    { id: P.MEAS_AGE, l: 'Atraso da medida',   u: 'µs',  d: 0,
+      h: 'Atraso entre o instante em que a corrente foi amostrada e o ângulo usado para projetá-la em dq. Curto demais, o referencial de medição fica girado de ω·τ e aparece um Id que cresce com a velocidade.' },
   ]},
   { title: 'Modulação e velocidade', items: [
     { id: P.MODCEIL,  l: 'Teto de modulação',    u: '',     d: 3,
-      h: 'Limite do bootstrap do driver (máx. 0.56). HOJE ele NÃO manda: o teto da janela de amostragem de corrente é menor (~0.45) e é ele que corta. Mexer aqui só tem efeito abaixo desse valor — ver DUTY MÁX no Monitor.' },
+      h: 'Fração máxima da tensão do barramento que a modulação usa — é o que define a velocidade máxima. O teto é o bootstrap do driver (0.56): acima disso o lado alto fica sem tempo de recarga.' },
     { id: P.SPD_BAND, l: 'Faixa da vel. máx.',   u: 'km/h', d: 1, h: 'Em quantos km/h a corrente afunila até o teto.' },
   ]},
   { title: 'Rampas e freio', items: [
@@ -110,14 +114,14 @@ const GROUPS = [
     { id: P.UV_CUT,     l: 'Tensão mínima (corte)', u: 'V', d: 1 },
     { id: P.UV_RECOVER, l: 'Rearme da subtensão',  u: 'V', d: 1 },
     { id: P.REGEN_I,    l: 'Corrente máx. de carga', u: 'A', d: 0,
-      h: 'Regen. Agora também é o teto de corrente de FASE do freio — se o freio ficar fraco, suba aqui.' },
+      h: 'Corrente máxima devolvida à bateria na frenagem, e também o teto de corrente de fase do freio.' },
     { id: P.SHUNT_MOHM, l: 'Shunt do INA226',  u: 'mΩ', d: 3,
-      h: 'Calibra a corrente de BATERIA — e ela é a referência que a calibração de fase usa. Se estiver errada, TODA a escala de corrente sai errada. Afira contra um amperímetro: novo = atual × (lido ÷ real).' },
+      h: 'Calibra a corrente de bateria, que é a referência usada pela calibração de corrente de fase. Errada aqui, toda a escala de corrente sai errada. Afira contra um amperímetro: novo = atual × (lido ÷ real).' },
   ]},
   { title: 'Proteções', items: [
     { id: P.OC_TRIP, l: 'Trip de bateria',          u: 'A',  d: 0, h: 'Sobrecorrente no barramento (INA226).' },
     { id: P.IPH_TRIP, l: 'Trip de fase |I|',        u: 'A',  d: 0,
-      h: 'Corte por magnitude de corrente de FASE medida — não depende do ângulo, vale parado e girando.' },
+      h: 'Corte pela magnitude da corrente de fase medida. Não depende do ângulo: vale parado e girando.' },
     { id: P.T_CUT,   l: 'Corte térmico (MOSFETs)',  u: '°C', d: 0 },
     { id: P.MT_CUT,  l: 'Corte térmico (motor)',    u: '°C', d: 0 },
   ]},
@@ -127,14 +131,14 @@ const GROUPS = [
     { id: P.ECO_AUTO,    l: 'Eco automático', b: true, h: 'Cruzeiro econômico no modo ECO.' },
     { id: P.TRAC_DERATE, l: 'Derate por tensão', b: true, h: 'Reduz a tração com a bateria fraca.' },
     { id: P.THERM_DERATE, l: 'Derate térmico', b: true,
-      h: 'Reduz potência ao esquentar. MOSFETs seguem a CURVA térmica (aba Curvas); o motor usa a rampa abaixo.' },
+      h: 'Reduz potência ao esquentar. Os MOSFETs seguem a curva térmica (aba Curvas); o motor usa a rampa abaixo.' },
     { id: P.MT_DERATE, l: 'Início do derate (motor)',   u: '°C', d: 0, dep: P.THERM_DERATE },
   ]},
   { title: 'Field weakening', items: [
     { id: P.FW_MAX_A, l: 'Field weakening', vfeat: true, onDef: 8,
       h: 'Compra rotação acima do teto de tensão TROCANDO torque por velocidade: o Id divide o mesmo orçamento de corrente de fase com o Iq. Só no TURBO, nunca em frenagem, colapsa ao soltar o punho.' },
     { id: P.FW_MAX_A, l: 'Corrente máxima de FW', u: 'A', d: 1, dep: P.FW_MAX_A, key: 'fwamps',
-      h: 'Id negativo injetado na malha de d. No topo o FW SEMPRE chega neste valor — trate-o como o que vai ser usado, não como um limite raro. Cada ampère vale ~0,2–0,3 km/h e sai do teto de torque: com 25 A de fase e 8 A de FW sobram 23,7 A para o Iq.' },
+      h: 'Id negativo injetado na malha de d. No topo o FW chega sempre neste valor, então ele é o que vai ser usado, não um limite raro. Cada ampère vale ~0,2–0,3 km/h e sai do teto de torque: com 25 A de fase e 8 A de FW sobram 23,7 A para o Iq.' },
     { id: P.FW_START,   l: 'Joelho de saturação', u: '% do teto', d: 0, dep: P.FW_MAX_A,
       h: 'Utilização de tensão em que o FW entra. Decide QUANDO, não QUANTO: acima do joelho a injeção sobe até o máximo e fica lá, porque a utilização nunca passa de 100%. Baixar o joelho só faz o FW começar mais cedo, em velocidade menor.' },
   ]},
