@@ -54,7 +54,8 @@ const GROUPS = [
     { id: P.MAX_KMH, l: 'Velocidade máxima',  u: 'km/h', d: 0,
       h: 'Teto geral de velocidade. O modo de pilotagem e o slider do painel reduzem por cima deste valor.' },
     { id: P.ILIM_A,  l: 'Corrente da bateria', u: 'A',    d: 0, h: 'Limite no barramento (INA226).' },
-    { id: P.IQ_MAX,  l: 'Corrente de fase',    u: 'A',    d: 0, h: 'O que o punho cheio pede. É o torque máximo.' },
+    { id: P.IQ_MAX,  l: 'Corrente de fase',    u: 'A',    d: 0,
+      h: 'O que o punho cheio pede — é o torque máximo. Fica limitado a 85% do "Trip de fase |I|": pedir acima do trip só garante o corte. Para andar mais forte, suba o trip antes (se o estágio de potência aguentar), não este valor.' },
     { id: P.VLIM,    l: 'Tensão máxima',       u: 'V',    d: 1,
       h: 'Tensão de barramento que as malhas usam como teto. O normal é deixar na tensão da bateria cheia; baixar reduz a velocidade máxima.' },
   ]},
@@ -136,11 +137,11 @@ const GROUPS = [
   ]},
   { title: 'Field weakening', items: [
     { id: P.FW_MAX_A, l: 'Field weakening', vfeat: true, onDef: 8,
-      h: 'Compra rotação acima do teto de tensão TROCANDO torque por velocidade: o Id divide o mesmo orçamento de corrente de fase com o Iq. Só no TURBO, nunca em frenagem, colapsa ao soltar o punho.' },
+      h: 'Compra rotação acima do teto de tensão injetando Id negativo: menos fluxo, menos força contra-eletromotriz, mais velocidade sob o mesmo duty. Só no TURBO, nunca em frenagem, colapsa ao soltar o punho.' },
     { id: P.FW_MAX_A, l: 'Corrente máxima de FW', u: 'A', d: 1, dep: P.FW_MAX_A, key: 'fwamps',
-      h: 'Id negativo injetado na malha de d. No topo o FW chega sempre neste valor, então ele é o que vai ser usado, não um limite raro. Cada ampère vale ~0,2–0,3 km/h e sai do teto de torque: com 25 A de fase e 8 A de FW sobram 23,7 A para o Iq.' },
+      h: 'Teto do Id negativo injetado. Ele e o Iq dividem o orçamento vetorial do TRIP de fase, não o teto de torque: com trip de 30 A, 10 A de Iq e 8 A de FW dão |I| = 12,8 A e o torque não é tocado. Cada ampère vale ~0,2–0,3 km/h e custa calor.' },
     { id: P.FW_START,   l: 'Joelho de saturação', u: '% do teto', d: 0, dep: P.FW_MAX_A,
-      h: 'Utilização de tensão em que o FW entra. Decide QUANDO, não QUANTO: acima do joelho a injeção sobe até o máximo e fica lá, porque a utilização nunca passa de 100%. Baixar o joelho só faz o FW começar mais cedo, em velocidade menor.' },
+      h: 'Utilização de tensão do eixo q em que o FW começa a entrar. Decide QUANDO, não QUANTO — a injeção é integral e se acomoda onde a utilização volta a este valor. Baixar faz o FW começar mais cedo, em velocidade menor.' },
   ]},
 ];
 
