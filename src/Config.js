@@ -122,7 +122,7 @@ const GROUPS = [
   { title: 'Proteções', items: [
     { id: P.OC_TRIP, l: 'Trip de bateria',          u: 'A',  d: 0, h: 'Sobrecorrente no barramento (INA226).' },
     { id: P.IPH_TRIP, l: 'Trip de fase |I|',        u: 'A',  d: 0,
-      h: 'Corte pela magnitude da corrente de fase medida. Não depende do ângulo: vale parado e girando.' },
+      h: 'Corte pela magnitude da corrente de fase medida. Não depende do ângulo: vale parado e girando. TEM UM TETO FÍSICO: a calibração exige 1,3× de folga sobre o fundo de escala do sensor, e acima dele ela reprova e bloqueia a malha — passado o fundo de escala a leitura mente para baixo e a malha empurra mais tensão. Com shunt de 1 mΩ o fundo de escala é ~64 A, então o trip para em ~48 A. Para subir, o caminho é shunt menor, não este campo.' },
     { id: P.T_CUT,   l: 'Corte térmico (MOSFETs)',  u: '°C', d: 0 },
     { id: P.MT_CUT,  l: 'Corte térmico (motor)',    u: '°C', d: 0 },
   ]},
